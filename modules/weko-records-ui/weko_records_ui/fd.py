@@ -429,11 +429,12 @@ def file_download_onetime(pid, record, _record_file_factory=None, **kwargs):
                                error_msg)
 
     # Guest Mailadress Check Modal
-    mailaddress = request.args.get('mailaddress')
-    if not mailaddress:
-        onetime_file_url = request.url
-        url=url_for(endpoint="invenio_records_ui.recid", onetime_file_url= onetime_file_url, pid_value = pid.pid_value, q="mailcheckflag")
-        return redirect(url)
+    if not current_user.is_authenticated:
+        mailaddress = request.args.get('mailaddress')
+        if not mailaddress:
+            onetime_file_url = request.url
+            url=url_for(endpoint="invenio_records_ui.recid", onetime_file_url= onetime_file_url, pid_value = pid.pid_value, q="mailcheckflag")
+            return redirect(url)
     
     # Parse token
     error, token_data = \
@@ -495,14 +496,15 @@ def file_download_onetime(pid, record, _record_file_factory=None, **kwargs):
         return __make_error_response(is_ajax, error_msg=_("Unexpected error occurred."))
 
     #　Guest Mailaddress Check
-    if mailaddress == user_mail:
-        return _download_file(file_object, False, 'en', file_object.obj, pid,
-                              record)
-    else:
-        return __make_error_response(is_ajax, error_msg=_("Could not download file."))
-    
-    # return _download_file(file_object, False, 'en', file_object.obj, pid,
-    #                       record)
+    if not current_user.is_authenticated:
+        if mailaddress == user_mail:
+            return _download_file(file_object, False, 'en', file_object.obj, pid,
+                                record)
+        else:
+            return __make_error_response(is_ajax, error_msg=_("Could not download file."))
+
+    return _download_file(file_object, False, 'en', file_object.obj, pid,
+                          record)
 
 def _is_terms_of_use_only(file_obj:dict , req :dict) -> bool:
     """
