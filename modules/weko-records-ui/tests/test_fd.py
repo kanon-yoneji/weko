@@ -263,40 +263,71 @@ def test_file_download_onetime(app, records, itemtypes, users, db_fileonetimedow
     indexer, results = records
     recid = results[0]["recid"]
     record = results[0]["record"]
+    mailaddress = "user@email"
     app.config["THEME_ERROR_TEMPLATE"]=THEME_ERROR_TEMPLATE
     with app.test_request_context('?token=MSB1c2VyQGV4YW1wbGUub3JnIDIwMjItMDktMjcgNDBDRkNGODFGM0FFRUI0Ng=='):
-        with patch("flask_login.utils._get_user", return_value=users[1]["obj"]):
+        with patch("weko_records_ui.fd.redirect", return_value=""):
+            assert file_download_onetime(recid,record,record_file_factory)==""
+    with app.test_request_context('?token=MSB1c2VyQGV4YW1wbGUub3JnIDIwMjItMDktMjcgNDBDRkNGODFGM0FFRUI0Ng==&mailaddress='+ mailaddress + '&isajax=true'):
             with patch("flask.templating._render", return_value=""):
                 with patch("weko_records_ui.fd.get_onetime_download", return_value=db_fileonetimedownload):
                     with patch("weko_records_ui.fd.parse_one_time_download_token", return_value=(True, [1])):
-                        assert file_download_onetime(recid,record,record_file_factory)==""
+                        assert file_download_onetime(recid,record,record_file_factory)==(True,401)
 
                     with patch("weko_records_ui.fd.parse_one_time_download_token", return_value=(False, ("","","",""))):
 
                         with patch("weko_records_ui.fd.validate_onetime_download_token", return_value=(False, [1])):
-                            assert file_download_onetime(recid,record,record_file_factory)==""
+                            assert file_download_onetime(recid,record,record_file_factory)==([1],401)
                         
                         _rv = (True, "")
                         with patch("weko_records_ui.fd.validate_onetime_download_token", return_value=_rv):
-                            assert file_download_onetime(recid,record,record_file_factory)==""
+                            assert file_download_onetime(recid,record,record_file_factory)==('Unexpected error occurred.',401)
 
                             with patch("weko_records_ui.fd.record_file_factory", return_value=False):
-                                assert file_download_onetime(recid,record,None)==""
+                                assert file_download_onetime(recid,record,None)==('None does not exist.', 401)
                             
                             file_object = MagicMock()
                             file_object.obj = {"foo" : "hoge"}
                             file_object.get = lambda x : 'open_restricted'
                             with patch("weko_records_ui.fd.record_file_factory", return_value=file_object):
                                 with patch('weko_records_ui.fd.check_and_send_usage_report',return_value ="error"):
-                                    assert file_download_onetime(recid,record,None)==""
+                                    assert file_download_onetime(recid,record,None)==('error',401)
                                 with patch('weko_records_ui.fd.check_and_send_usage_report',side_effect = BaseException ):
-                                    assert file_download_onetime(recid,record,None)==""
+                                    assert file_download_onetime(recid,record,None)==('Unexpected error occurred.', 401)
                                 with patch('weko_records_ui.fd.check_and_send_usage_report',side_effect =SQLAlchemyError):
-                                    assert file_download_onetime(recid,record,None)==""
+                                    assert file_download_onetime(recid,record,None)==('Unexpected error occurred.', 401)
                                 with patch('weko_records_ui.fd.check_and_send_usage_report',return_value =""):
+                                    with patch('weko_records_ui.fd.update_onetime_download',return_value =False):
+                                        assert file_download_onetime(recid,record,None)==('Unexpected error occurred.', 401)
                                     with patch('weko_records_ui.fd.update_onetime_download',return_value =True):
-                                        with patch('weko_records_ui.fd._download_file',return_value ="downloaded"):
-                                            assert file_download_onetime(recid,record,None)=="downloaded"
+                                        with patch("weko_records_ui.fd.parse_one_time_download_token", return_value=(False, ("","","",""))):
+                                            assert file_download_onetime(recid,record,None)==('Could not download file.', 401)
+                                        user_mail = "user@email"
+                                        with patch("weko_records_ui.fd.parse_one_time_download_token", return_value=(False, ("",user_mail,"",""))):
+                                            with patch('weko_records_ui.fd._download_file',return_value ="downloaded"):
+                                                assert file_download_onetime(recid,record,None)=="downloaded"
+    with app.test_request_context('?token=MSB1c2VyQGV4YW1wbGUub3JnIDIwMjItMDktMjcgNDBDRkNGODFGM0FFRUI0Ng==&mailaddress='+ mailaddress):
+         with patch("flask_login.utils._get_user", return_value=users[0]["obj"]):
+            with patch("flask.templating._render", return_value=""):   
+                with patch("weko_records_ui.fd.get_onetime_download", return_value=db_fileonetimedownload):              
+                    with patch("weko_records_ui.fd.record_file_factory", return_value=file_object):
+                        with patch('weko_records_ui.fd.check_and_send_usage_report',return_value ="error"):
+                            with patch("weko_records_ui.fd.redirect", return_value=""):
+                                assert file_download_onetime(recid,record)==""   
+    with app.test_request_context():
+        with patch("flask_login.utils._get_user", return_value=users[0]["obj"]):
+            with patch("flask.templating._render", return_value=""):   
+                with patch("weko_records_ui.fd.get_onetime_download", return_value=db_fileonetimedownload):              
+                    with patch("weko_records_ui.fd.record_file_factory", return_value=file_object):
+                        with patch('weko_records_ui.fd.check_and_send_usage_report',return_value ="error"):
+                            with patch("weko_records_ui.fd.redirect", return_value=""):
+                                assert file_download_onetime(recid,record)==""
+                        with patch('weko_records_ui.fd.check_and_send_usage_report',return_value =""):
+                            with patch('weko_records_ui.fd.update_onetime_download',return_value =True):
+                                with patch('weko_records_ui.fd._download_file',return_value ="downloaded"):
+                                    # call by method
+                                    file_name = "/helloworld_open_restricted.pdf"
+                                    assert file_download_onetime(recid,record,file_name, user_mail, True)=="downloaded"
 
 # def _is_terms_of_use_only(file_obj:dict , req :dict) -> bool:
 # .tox/c1/bin/pytest --cov=weko_records_ui tests/test_fd.py::test__is_terms_of_use_only -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-records-ui/.tox/c1/tmp
