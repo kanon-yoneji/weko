@@ -1200,6 +1200,7 @@ def index_issn(app,db):
         id = 1616224532673,
         parent = 0,
         index_name = "利用報告",
+        index_name_english = "Data Report",
         online_issn = 12345,
         position = 10
     )
@@ -1207,6 +1208,7 @@ def index_issn(app,db):
         id = 1714029010533,
         parent = 0,
         index_name = "New Index",
+        index_name_english = "New Index",
         online_issn = 23456,
         position = 11
     )
@@ -1214,6 +1216,7 @@ def index_issn(app,db):
         id = 1715825846862,
         parent = 1714029010533,
         index_name = "New New Index",
+        index_name_english = "New New Index",
         online_issn = 678594,
         position = 12
     )
@@ -1221,6 +1224,7 @@ def index_issn(app,db):
         id = 1715825656540,
         parent = 0,
         index_name = "No ISSN Index",
+        index_name_english = "No ISSN Index",
         position = 13
     )
 

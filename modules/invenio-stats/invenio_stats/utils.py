@@ -821,7 +821,7 @@ class QuerySitelicenseReportsHelper(object):
                 spec = Indexes.get_full_path(i['id'])
                 set_spec = spec.replace('/', ':')
                 spec_list.append(set_spec)
-                index_info[set_spec] = {'name':i['index_name'], 'issn':i['issn']}
+                index_info[set_spec] = {'name':i['index_name'], 'name_en':i['index_name_english'],'issn':i['issn']}
                 index_dict[set_spec] = pickle.loads(pickle.dumps(date_dict, -1))
             for k in query_list:
                 if k == 'search':
