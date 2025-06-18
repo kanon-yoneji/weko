@@ -122,6 +122,7 @@ set -o errexit
 # set -o nounset
 
 # sphinxdoc-create-database-begin
+${INVENIO_WEB_INSTANCE} db init
 ${INVENIO_WEB_INSTANCE} db drop --yes-i-know
 ${INVENIO_WEB_INSTANCE} db init
 ${INVENIO_WEB_INSTANCE} db create -v
@@ -130,7 +131,7 @@ ${INVENIO_WEB_INSTANCE} stats partition create $(date -d 'year' +%Y)
 # sphinxdoc-create-database-end
 
 # sphinxdoc-index-initialisation-begin
-# ${INVENIO_WEB_INSTANCE} index destroy --yes-i-know
+#${INVENIO_WEB_INSTANCE} index destroy --yes-i-know
 ${INVENIO_WEB_INSTANCE} index init
 sleep 20
 ${INVENIO_WEB_INSTANCE} index queue init

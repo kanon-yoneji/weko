@@ -8,23 +8,23 @@ done
 DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose build --no-cache --force-rm
 
 # Initialize resources
-docker-compose run --rm web ./scripts/populate-instance.sh
+docker-compose run --rm web ./scripts/populate-instance.sh # webコンテナの名前を変更
 docker cp scripts/demo/item_type3.sql $(docker-compose ps -q postgresql):/tmp/item_type.sql
-docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/item_type.sql
+docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/item_type.sql # DB名を変更
 docker cp scripts/demo/indextree.sql $(docker-compose ps -q postgresql):/tmp/indextree.sql
-docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/indextree.sql
-docker-compose run --rm web invenio workflow init action_status,Action
+docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/indextree.sql # DB名を変更
+docker-compose run --rm web invenio workflow init action_status,Action # webコンテナの名前を変更
 docker cp scripts/demo/defaultworkflow.sql $(docker-compose ps -q postgresql):/tmp/defaultworkflow.sql
-docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/defaultworkflow.sql
+docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/defaultworkflow.sql # DB名を変更
 docker cp scripts/demo/doi_identifier.sql $(docker-compose ps -q postgresql):/tmp/doi_identifier.sql
-docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/doi_identifier.sql
+docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/doi_identifier.sql # DB名を変更
 # docker cp scripts/demo/resticted_access.sql $(docker-compose ps -q postgresql):/tmp/resticted_access.sql
 # docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/resticted_access.sql
 #docker-compose run --rm web invenio workflow init gakuninrdm_data
 docker cp postgresql/ddl/h2022-01-Insert_item_type_property.sql $(docker-compose ps -q postgresql):/tmp/Insert_item_type_property.sql
-docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/Insert_item_type_property.sql
-docker-compose run --rm web invenio shell scripts/demo/register_oai_schema.py overwrite_all
-docker-compose run --rm web invenio shell tools/update/addjpcoar_v1_mapping.py
+docker-compose exec postgresql psql -U invenio -d invenio -f /tmp/Insert_item_type_property.sql # DB名を変更
+docker-compose run --rm web invenio shell scripts/demo/register_oai_schema.py overwrite_all # webコンテナの名前を変更
+docker-compose run --rm web invenio shell tools/update/addjpcoar_v1_mapping.py # webコンテナの名前を変更
 
 # Start services
 docker-compose up -d
