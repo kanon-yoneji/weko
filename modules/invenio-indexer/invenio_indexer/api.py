@@ -442,6 +442,7 @@ class RecordIndexer(object):
                         errors = []
                         if isinstance(fail, list):
                             errors = fail
+                            fail = len(errors)
                     else:
                         success = e.success if hasattr(e, 'success') else 0
                         fail = e.failed if hasattr(e, 'failed') else 0
@@ -455,7 +456,7 @@ class RecordIndexer(object):
                             else:
                                 error_type = str(err_info)
                             click.secho("[ERROR] {}, {}".format(err.get('_id', ''), error_type), fg='red')
-                        fail = len(errors)
+                            
                     unprocessed = messages_count - (success + fail) if messages_count > (success + fail) else 0
                     update_pdf_contents_es_with_index_api(self.success_ids)
         if unprocessed == 0:
@@ -560,7 +561,7 @@ class RecordIndexer(object):
             except Exception:
                 message.reject()
                 current_app.logger.error(
-                    f"Failed to index record {0}".format(payload.get('id')),
+                    "Failed to index record {0}".format(payload.get('id')),
                     exc_info=True)
 
     def _delete_action(self, payload):

@@ -112,12 +112,18 @@ def update_pdf_contents_es_with_index_api(record_ids):
     Args:
         record_ids (list): List of record uuids
     """
-    deposits = WekoDeposit.get_records(record_ids)
-    for dep in deposits:
-        try:
-            file_infos = dep.get_pdf_info_reindex_command()
-            extract_pdf_and_update_file_contents_with_index_api.apply_async((
-                file_infos, str(dep.id)))
-        except NoResultFound:
-            current_app.logger.error(f"Record with UUID: {dep.id} was not found in the item_metadata table.")
-            traceback.print_exc()
+    # chunksize = 1000
+    def chunked(iterable, size):
+        for i in range(0, len(iterable), size):
+            yield iterable[i:i + size]
+
+    for ids_chunk in chunked(record_ids, 1000):
+        deposits = WekoDeposit.get_records(ids_chunk)
+        for dep in deposits:
+            try:
+                file_infos = dep.get_pdf_info_reindex_command()
+                extract_pdf_and_update_file_contents_with_index_api.apply_async((
+                    file_infos, str(dep.id)))
+            except NoResultFound:
+                current_app.logger.error(f"Record with UUID: {dep.id} was not found in the item_metadata table.")
+                traceback.print_exc()
