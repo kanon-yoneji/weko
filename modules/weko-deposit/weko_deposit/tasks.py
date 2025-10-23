@@ -740,6 +740,7 @@ def extract_pdf_and_update_file_contents_with_index_api(
             current_app.logger.error(ex)
         file_datas[filename] = data
 
+    success = False
     for attempt in range(retry_count):
         try:
             update_file_content_with_index_api(record_uuid, file_datas)
