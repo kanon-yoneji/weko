@@ -149,6 +149,7 @@ def default_search_factory(self, search, query_parser=None, search_type=None):
         return q
 
     def _get_search_index_query(index_key, index_list_key, include_childe_key):
+        print("_get_search_index_query called")  # --- IGNORE ---
 
         def _get_child_index(idx_list):
             index_id_list = []
@@ -186,6 +187,7 @@ def default_search_factory(self, search, query_parser=None, search_type=None):
 
         :return: Query parser.
         """
+        print("get_detail_keywords_query called")  # --- IGNORE ---
 
         def _get_opensearch_parameter(k):
             kv = None
@@ -1120,6 +1122,8 @@ def item_path_search_factory(self, search, index_id=None):
     :param index_id: Index Identifier contains item's path
     :returns: Tuple with search instance and URL arguments.
     """
+    # 調査用コメント。必ず削除すること
+    print("index_id in item_path_search_factory:", index_id)
 
     def _get_index_earch_query():
         """Prepare search query.
@@ -1356,20 +1360,33 @@ def item_path_search_factory(self, search, index_id=None):
 
     search_index = search._index[0]
     search, sortkwargs = default_sorter_factory(search, search_index)
+    # 調査用コメント。必ず削除すること
+    print("weko_search_ui.query.item_path_search_factory sortkwargs",sortkwargs)
 
     for key, value in sortkwargs.items():
         # set custom sort option
         if "custom_sort" in value:
             ind_id = request.values.get("q", "")
             search._sort = []
+            if ind_id:
+                if value == "custom_sort":
+                    script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "asc")
+                else:
+                    script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "desc")
 
-            if value == "custom_sort":
-                script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "asc")
+                search._sort.append(script_str)
+                search._sort.append(default_sort)
             else:
-                script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "desc")
-
-            search._sort.append(script_str)
-            search._sort.append(default_sort)
+                if value == "custom_sort":
+                    path_sort = {"path": { "order": "asc", "mode": "min" }}
+                    default_sort = {"_created": {"order": "asc", "unmapped_type": "long"}}
+                else:
+                    path_sort = {"path": { "order": "desc", "mode": "max" }}
+                    default_sort = {"_created": {"order": "desc", "unmapped_type": "long"}}
+                search._sort.append(path_sort)
+                search._sort.append(default_sort)
+            # 調査用コメント。必ず削除すること
+            print("weko_search_ui.query.item_path_search_factory custom sort applied", search.to_dict())
 
         # set selectbox
         urlkwargs.add(key, value)
@@ -1393,15 +1410,25 @@ def item_path_search_factory(self, search, index_id=None):
             search._sort.append(sort_obj)
         else:
             ind_id = request.values.get("q", "")
-            if sort == "desc":
-                script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "desc")
-                sort_key = "-" + sort_key
-            else:
-                script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "asc")
+            if ind_id:
+                if sort == "desc":
+                    script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "desc")
+                    sort_key = "-" + sort_key
+                else:
+                    script_str, default_sort = SearchSetting.get_custom_sort(ind_id, "asc")
 
-            search._sort = []
-            search._sort.append(script_str)
-            search._sort.append(default_sort)
+                search._sort = []
+                search._sort.append(script_str)
+                search._sort.append(default_sort)
+            else:
+                if sort == "desc":
+                    path_sort = {"path": { "order": "desc", "mode": "max" }}
+                    default_sort = {"_created": {"order": "desc", "unmapped_type": "long"}}
+                else:
+                    path_sort = {"path": { "order": "asc", "mode": "min" }}
+                    default_sort = {"_created": {"order": "asc", "unmapped_type": "long"}}
+                search._sort.append(path_sort)
+                search._sort.append(default_sort)
 
         urlkwargs.add("sort", sort_key)
 
@@ -1448,6 +1475,7 @@ def opensearch_factory(self, search, query_parser=None):
     :param query_parser:
     :return:
     """
+    print("opensearch_factory called")
     index_id = request.values.get("q")
     search_type = config.WEKO_SEARCH_TYPE_DICT["FULL_TEXT"]
 

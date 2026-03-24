@@ -10,6 +10,8 @@
 
 from __future__ import absolute_import, print_function
 
+# 調査用コメント。必ず削除すること
+import datetime
 import pickle
 import inspect
 import traceback
@@ -54,6 +56,7 @@ import math
 from flask_security import current_user
 from flask import session
 from invenio_accounts.models import User
+from invenio_records_rest.sorter import parse_sort_field
 from weko_redis.redis import RedisConnection
 
 from .config import RECORDS_REST_DEFAULT_TTL_VALUE
@@ -573,6 +576,11 @@ class RecordsListResource(ContentNegotiatedMethodView):
         :returns: Search result containing hits and aggregations as
                   returned by invenio-search.
         """
+        # 調査用コメント。必ず削除すること
+        print("RecordsListResource GET")
+        before_get_time = datetime.datetime.now()
+        print("before RecordsListResource GET time: {}".format(before_get_time))
+
         # default_results_size = current_app.config.get(
         #     'RECORDS_REST_DEFAULT_RESULTS_SIZE', 10)
         # page_no is parameters for Opensearch
@@ -799,18 +807,100 @@ class RecordsListResource(ContentNegotiatedMethodView):
 
             # Search after trigger set to true
             use_search_after = True
-
+        
+        is_custom_sort = False
+        request_sort = request.values.get('sort','', str)
+        key, is_asc = parse_sort_field(request_sort)
+        if key == "custom_sort":
+            is_custom_sort = True
+        
         if use_search_after:
             search = search[0:size]
         else:
             search = search[(page - 1) * size:page * size]
             use_search_after = False
 
+        if is_custom_sort:
+            search = search[0:self.max_result_window]
+
         if query:
             urlkwargs['q'] = query
 
         # Execute search
+        # 調査用コメント。必ず削除すること
+        print("3  search.to_dict():{}".format(search.to_dict()))
+        before_execute_time = datetime.datetime.now()
+        print("before execute time: {}".format(before_execute_time))
+
         search_result = search.execute()
+        search_result_dict = search_result.to_dict()
+
+        # 調査用コメント。必ず削除すること
+        after_execute_time = datetime.datetime.now()
+        print("after execute time: {}".format(after_execute_time))
+        print("検索に掛かった時間:{}".format(after_execute_time - before_execute_time))
+
+        def sort_custom_sort(is_asc):
+            from weko_index_tree.api import Indexes
+
+            sorted_result = []
+            custom_sort = {}
+            target_index = []
+            index_id = request.values.get("index_id", None)
+            idx = request.values.get("idx", None)
+            recursive = request.values.get("recursive", 0)
+            
+            if index_id:
+                target_index.append(int(index_id))
+            if idx:
+                idx_list = idx.split(',')
+                target_index.extend([int(i) for i in idx_list])
+                if recursive and not index_id:
+                    for idx in idx_list:
+                        target_index.extend(
+                            [int(cid) for cid in Indexes.get_child_list_recursive(str(idx))]
+                        )
+
+            def get_sort_value(hit):
+                paths = {int(p) for p in hit["_source"]["path"]}
+                if target_index:
+                    paths = paths.intersection(set(target_index))
+                path = min(paths) if is_asc else max(paths)
+                if path not in custom_sort:
+                    index_custom_sort = Indexes.get_item_sort(path)
+                    if index_custom_sort:
+                        custom_sort[path] = index_custom_sort
+
+                cn = hit["_source"]["control_number"]
+                v = custom_sort.get(path, {}).get(cn)
+                created = hit["_source"].get("_created")
+
+                priority = 0 if v is not None else 1
+                v = int(v) if v is not None else None
+                return (path, priority, v, created, int(cn))
+                
+            from bisect import insort
+            for hit in search_result_dict["hits"]["hits"]:
+                insort(sorted_result, (get_sort_value(hit), hit))
+
+            # ページネーション
+            sorted_hits = [hit for _, hit in sorted_result]
+            search_result_dict["hits"]["hits"] = sorted_hits[(page - 1) * size : page * size] \
+                if is_asc else sorted_hits[::-1][(page - 1) * size : page * size]
+
+        if is_custom_sort:
+            before_sort_custom_sort_time = datetime.datetime.now()
+
+            # 調査用コメント。必ず削除すること
+            print("before sort_custom_sort time: {}".format(before_sort_custom_sort_time))
+
+            if not search_result_dict['hits']['total'] > self.max_result_window:
+                sort_custom_sort(is_asc)
+            
+            # 調査用コメント。必ず削除すること
+            after_sort_custom_sort_time = datetime.datetime.now()
+            print("after sort_custom_sort time: {}".format(after_sort_custom_sort_time))
+            print("カスタムソートに掛かった時間:{}".format(after_sort_custom_sort_time - before_sort_custom_sort_time))
 
         if not sessionstorage.redis.exists(cache_name) and size * math.floor(self.max_result_window/size) <= self.max_result_window:
             json_data = orjson.dumps({cache_key: {"control_number": [next_items_sort_value]}})
@@ -833,13 +923,18 @@ class RecordsListResource(ContentNegotiatedMethodView):
         links = dict(self=url_for(endpoint, page=page, **urlkwargs))
         if page > 1:
             links['prev'] = url_for(endpoint, page=page - 1, **urlkwargs)
-        if size * page < search_result.hits.total and \
+        if size * page < search_result_dict["hits"]["total"] and \
                 size * page < self.max_result_window:
             links['next'] = url_for(endpoint, page=page + 1, **urlkwargs)
 
+        # 調査用コメント。必ず削除すること
+        after_get_time = datetime.datetime.now()
+        print("RecordsListResource GET finished")
+        print("RecordsListResource GET processing time: {}".format(after_get_time - before_get_time))
+
         return self.make_response(
             pid_fetcher=self.pid_fetcher,
-            search_result=search_result.to_dict(),
+            search_result=search_result_dict,
             links=links,
             item_links_factory=self.item_links_factory,
         )
