@@ -879,14 +879,15 @@ class RecordsListResource(ContentNegotiatedMethodView):
                 v = int(v) if v is not None else None
                 return (path, priority, v, created, int(cn))
                 
-            from bisect import insort
-            for hit in search_result_dict["hits"]["hits"]:
-                insort(sorted_result, (get_sort_value(hit), hit))
+            l = ((get_sort_value(hit), hit) for hit in search_result_dict["hits"]["hits"])
+            sorted_result = sorted(l, reverse=not is_asc)
+
 
             # ページネーション
-            sorted_hits = [hit for _, hit in sorted_result]
-            search_result_dict["hits"]["hits"] = sorted_hits[(page - 1) * size : page * size] \
-                if is_asc else sorted_hits[::-1][(page - 1) * size : page * size]
+            start = (page - 1) * size
+            end = page * size
+            sorted_hits = [hit for _, hit in sorted_result[start:end]]
+            search_result_dict["hits"]["hits"] = sorted_hits
 
         if is_custom_sort:
             before_sort_custom_sort_time = datetime.datetime.now()
