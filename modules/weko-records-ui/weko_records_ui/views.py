@@ -22,6 +22,8 @@
 
 import re
 import os
+from urllib import response
+from flask import session
 import uuid
 
 import six
@@ -1111,8 +1113,41 @@ def charge():
 
     return jsonify({'redirect_url': redirect_url})
 
-@blueprint.route('/charge/secure/<string:session_id>', methods=['POST'])
-def charge_secure(session_id):
+@blueprint.route(
+    "/charge/3ds-callback",
+    methods=["POST"]
+)
+def callback():
+
+    print(
+        "START callback",
+        request.path,
+        session.new,
+        session.modified,
+        session.permanent,
+        dict(session),
+        request.cookies
+    )
+
+    access_id = request.form.get("AccessID")
+
+    # result = execute_payment(
+    #     access_id
+    # )
+
+    # token = store_result(result)
+
+    return redirect(
+        url_for(
+            "weko_records_ui.charge_secure",
+            **request.values.to_dict()
+        ),
+        code=303,
+    )
+
+@blueprint.route('/charge/secure', methods=["GET", 'POST'])
+# # @blueprint_api.route('/charge/secure', methods=["GET", 'POST'])
+def charge_secure():
     """3DS2.0認証後の課金処理を行う。
 
     Request parameter:
@@ -1125,11 +1160,29 @@ def charge_secure(session_id):
                 success : 課金成功
                 error   : 課金失敗
     """
+    
+    print(
+        "START charge_secure",
+        request.path,
+        session.new,
+        session.modified,
+        session.permanent,
+        dict(session),
+        request.cookies
+    )
+    print("current_user", current_user)
+
+    # if request.method == 'POST':
+    #     return redirect('/', **request.values.to_dict())
+
+    if not current_user.is_authenticated:
+        abort(401)
+
     access_id = request.values.get('AccessID')
     redis_connection = RedisConnection()
 
-    if not current_user.is_authenticated:
-        restore_session_info(session_id, redis_connection)
+    # if not current_user.is_authenticated:
+    #     restore_session_info(session_id, redis_connection)
 
     # 課金中のアイテムIDをキャッシュから取得
     datastore = redis_connection.connection(db=current_app.config['CACHE_REDIS_DB'], kv=True)
