@@ -8,7 +8,7 @@ from datetime import datetime
 from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from invenio_records.models import RecordMetadata
 from invenio_search import current_search_client
-from inveion_search.engine import dsl
+from invenio_search.engine import dsl
 from weko_index_tree.models import Index
 
 from invenio_oaiserver import current_oaiserver

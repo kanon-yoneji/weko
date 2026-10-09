@@ -134,6 +134,7 @@ def get_records(**kwargs):
             scroll='{0}s'.format(scroll),
         ).extra(
             version='true',
+            track_total_hits=True,
         ).sort(
             {'control_number': {'order': 'asc'}}
         )[(page_ - 1) * size_:page_ * size_]

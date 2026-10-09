@@ -276,7 +276,7 @@ def es_app(app):
     with open(join(dirname(__file__),"data/mappings/item-v1.0.0.json"),"r") as f:
     #with open(join(dirname(__file__),"data/v6/records/record-v1.0.0.json"),"r") as f:
         mapping = json.load(f)
-    open_search = search.Opensearch("http://{}:9200".format(app.config["SEARCH_OPENSEARCH_HOSTS"]))
+    open_search = search.OpenSearch("http://{}:9200".format(app.config["SEARCH_OPENSEARCH_HOSTS"]))
     
     open_search.indices.create(
         index=app.config["INDEXER_DEFAULT_INDEX"], 
@@ -288,7 +288,7 @@ def es_app(app):
         name=app.config["SEARCH_UI_SEARCH_INDEX"],
         ignore=[400, 404],
     )
-    search = InvenioSearch(app, client=open_search)
+    search_ext = InvenioSearch(app, client=open_search)
     #search.register_mappings('items', 'tests.data')
     yield app
     
