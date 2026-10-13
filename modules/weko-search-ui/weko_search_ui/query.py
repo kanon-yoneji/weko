@@ -46,21 +46,6 @@ from .api import SearchSetting
 from .permissions import search_permission
 
 
-def get_item_type_aggs(search_index):
-    """Get item types aggregations.
-
-    Args:
-        search_index (str): Search index.
-
-    Returns:
-        dict: Aggregation dictionary.
-    """
-    from weko_admin.utils import get_facet_search_query
-
-    facets = get_facet_search_query(search_permission.can())
-    return facets.get(search_index).get("aggs", {})
-
-
 def get_permission_filter(index_id: str = None):
     """Check permission.
 
@@ -1221,9 +1206,6 @@ def item_path_search_factory(self, search, index_id=None):
         q = request.values.get("q") or "0" if index_id is None else index_id
 
         if q != "0":
-            # add item type aggs
-            aggs_template["aggs"].update(get_item_type_aggs(search._index[0]))
-
             if q:
                 mut, is_perm_paths = get_permission_filter(q)
             else:
