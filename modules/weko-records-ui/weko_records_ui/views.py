@@ -1035,6 +1035,7 @@ def dbsession_clean(exception):
     db.session.remove()
 
 @blueprint.route("/charge", methods=['GET'])
+@login_required
 def charge():
     '''課金処理を行う。
 
