@@ -1832,6 +1832,47 @@ def test_send_mail_users(client, users, db_register, users_index, status_code):
         assert data['msg'] == 'Authorization required'
 
 
+def test_send_mail_authorized_activity(client, users, db_register):
+    """Test send mail when authority is granted for the activity."""
+    login(client=client, email=users[3]['email'])
+    url = url_for('weko_workflow.send_mail', activity_id='1',
+                  mail_template='a')
+
+    with patch(
+        'weko_workflow.views.check_authority_by_admin',
+        return_value=True,
+    ) as mock_check_authority:
+        with patch('weko_workflow.views.process_send_reminder_mail'):
+            res = client.post(url, json={})
+
+    mock_check_authority.assert_called_once()
+    data = response_data(res)
+    assert res.status_code == 200
+    assert data['code'] == 1
+    assert data['msg'] == 'Success'
+
+
+def test_send_mail_unauthorized_activity(client, users, db_register):
+    """Test send mail when authority is denied for the activity."""
+    login(client=client, email=users[3]['email'])
+    url = url_for('weko_workflow.send_mail', activity_id='1',
+                  mail_template='a')
+
+    with patch(
+        'weko_workflow.views.check_authority_by_admin',
+        return_value=False,
+    ) as mock_check_authority:
+        with patch('weko_workflow.views.process_send_reminder_mail') as mock_send_mail:
+            res = client.post(url, json={})
+
+    mock_check_authority.assert_called_once()
+    mock_send_mail.assert_not_called()
+    data = response_data(res)
+    assert res.status_code == 403
+    assert data['code'] == 403
+    assert data['msg'] == 'Authorization required'
+
+
 def test_lock_activity_nologin(client,db_register2):
     """Test of lock activity."""
     url = url_for('weko_workflow.lock_activity', activity_id='1')
