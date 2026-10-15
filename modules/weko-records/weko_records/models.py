@@ -733,7 +733,7 @@ class ItemBilling(db.Model, Timestamp):
     """Role ID"""
 
     include_tax = db.Column(
-        db.Boolean(),
+        db.Boolean(name='include_tax'),
         default=False,
     )
     """Whether tax is included"""
