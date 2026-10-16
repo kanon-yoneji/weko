@@ -873,6 +873,12 @@ def test_charge(app,db,users,client,mocker):
                     assert json.loads(res.data) == {'status': 'error'}
                     assert redis.redis.exists(redis_key) == 0
 
+def test_charge_nologin(client, db_sessionlifetime):
+    url = url_for('weko_records_ui.charge', _external=True)
+    res = client.get(url, query_string={'item_id': '1'})
+
+    assert res.status_code == 302
+
 # def charge_secure():
 # .tox/c1/bin/pytest --cov=weko_records_ui tests/test_views.py::test_charge_secure -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-records-ui/.tox/c1/tmp
 def test_charge_secure(app, db, users, client, mocker):
