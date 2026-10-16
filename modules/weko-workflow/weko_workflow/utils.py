@@ -234,7 +234,7 @@ def register_hdl(activity_id):
     current_app.logger.debug(
         "register_hdl: {0} {1}".format(activity_id, item_uuid))
     record = WekoRecord.get_record(item_uuid)
-    
+
     if record.pid_cnri:
         current_app.logger.info('This record was registered HDL!')
         return
@@ -270,7 +270,7 @@ def register_hdl_by_item_id(deposit_id, item_uuid, url_root):
 
     weko_handle = Handle()
     handle = weko_handle.register_handle(location=record_url)
-    
+
     if handle:
         handle = WEKO_SERVER_CNRI_HOST_LINK + str(handle)
         identifier = IdentifierHandle(item_uuid)
@@ -314,7 +314,7 @@ def item_metadata_validation(item_id, identifier_type, record=None,
     :param: item_id, identifier_type, record
     :return: error_list
     """
-    
+
     ddi_item_type_name = 'DDI'
     journalarticle_type = ['other', 'conference paper',
                            'data paper', 'departmental bulletin paper',
@@ -335,10 +335,10 @@ def item_metadata_validation(item_id, identifier_type, record=None,
                          'still image', 'moving image', 'video',
                          'conference object', 'conference proceedings',
                          'conference poster','manuscript', 'data management plan', 'interview']
-    
+
     def _check_resource_type(identifier_type, resource_type, old_resource_type):
         """
-        Validate if the new resource type and the old resource type 
+        Validate if the new resource type and the old resource type
         belong to the same mapping type
         """
         def _get_mapping_type(_resource_type):
@@ -383,7 +383,7 @@ def item_metadata_validation(item_id, identifier_type, record=None,
             return True
         else:
             return False
-        
+
     current_app.logger.debug("item_id: {}".format(item_id))
     current_app.logger.debug("identifier_type: {}".format(identifier_type))
     current_app.logger.debug("record: {}".format(record))
@@ -1365,7 +1365,7 @@ def filter_all_condition(all_args):
 
     Returns:
         dict: a json data of filtered request parameters.
-    """    
+    """
     conditions = {}
     list_key_condition = current_app.config.get('WEKO_WORKFLOW_FILTER_PARAMS',
                                                 [])
@@ -1383,7 +1383,7 @@ def filter_condition(json, name, condition):
         json (dict): _description_
         name (string): _description_
         condition (string): _description_
-    """    
+    """
     if json.get(name):
         json[name].append(condition)
     else:
@@ -1770,7 +1770,7 @@ def get_url_root():
     site_url = current_app.config['THEME_SITEURL']
     if not site_url.endswith('/'):
         site_url = site_url + '/'
-        
+
     return request.host_url if request else site_url
 
 
@@ -3089,7 +3089,7 @@ def get_activity_display_info(activity_id: str):
         _type_: steps
         _type_: temporary_comment [{'ActivityId': 'A-20220821-00003', 'ActionId': 1, 'ActionName': 'Start', 'ActionVersion': '1.0.0', 'ActionEndpoint': 'begin_action', 'Author': 'wekosoftware@nii.ac.jp', 'Status': 'action_done', 'ActionOrder': 1}, {'ActivityId': 'A-20220821-00003', 'ActionId': 3, 'ActionName': 'Item Registration', 'ActionVersion': '1.0.1', 'ActionEndpoint': 'item_login', 'Author': '', 'Status': ' ', 'ActionOrder': 2}, {'ActivityId': 'A-20220821-00003', 'ActionId': 4, 'ActionName': 'Approval', 'ActionVersion': '2.0.0', 'ActionEndpoint': 'approval', 'Author': '', 'Status': ' ', 'ActionOrder': 3}, {'ActivityId': 'A-20220821-00003', 'ActionId': 5, 'ActionName': 'Item Link', 'ActionVersion': '1.0.1', 'ActionEndpoint': 'item_link', 'Author': '', 'Status': ' ', 'ActionOrder': 4}, {'ActivityId': 'A-20220821-00003', 'ActionId': 7, 'ActionName': 'Identifier Grant', 'ActionVersion': '1.0.0', 'ActionEndpoint': 'identifier_grant', 'Author': '', 'Status': ' ', 'ActionOrder': 5}, {'ActivityId': 'A-20220821-00003', 'ActionId': 2, 'ActionName': 'End', 'ActionVersion': '1.0.0', 'ActionEndpoint': 'end_action', 'Author': '', 'Status': ' ', 'ActionOrder': 6}]
         Workflow: workflow_detail
-    """    
+    """
     activity = WorkActivity()
     activity_detail = activity.get_activity_detail(activity_id)
     item = None
@@ -3695,37 +3695,48 @@ def update_system_data_for_activity(activity, sub_system_data_key,
         db.session.commit()
 
 
-def check_authority_by_admin(activity):
+def check_authority_by_admin(activity, user=None):
     """Check authority by admin.
 
-    :param activity:
+    :param activity: Activity to authorize.
+    :param user: User to authorize, or the current user when omitted.
     :return:
     """
-    # If user has admin role
+    is_admin = False
+    is_comadmin = False
+    user = user or current_user
     supers = current_app.config['WEKO_PERMISSION_SUPER_ROLE_USER']
-    for role in list(current_user.roles or []):
-        if role.name in supers:
-            return True
-    # If user has community role
-    # and the user who created activity is member of community
-    # role -> has permission:
     community_role_names = current_app.config['WEKO_PERMISSION_ROLE_COMMUNITY']
-    for community_role_name in community_role_names:
-        # Get the list of users who has the community role
-        community_users = User.query.outerjoin(userrole).outerjoin(Role) \
-            .filter(community_role_name == Role.name) \
-            .filter(userrole.c.role_id == Role.id) \
-            .filter(User.id == userrole.c.user_id) \
-            .all()
-        community_user_ids = [
-            community_user.id for community_user in community_users]
-        for role in list(current_user.roles or []):
-            if role.name in community_role_name:
-                # User has community role
-                if activity.activity_login_user in community_user_ids:
-                    return True
-                break
-    return False
+    for role in list(user.roles or []):
+        if role.name in supers:
+            is_admin = True
+        elif role.name in community_role_names:
+            is_comadmin = True
+
+    # A community administrator may access items in their community indexes.
+    if not is_admin and is_comadmin:
+        item_id = activity.item_id
+        if item_id:
+            index_ids = []
+            role_ids = [role.id for role in user.roles]
+            from invenio_communities.models import Community
+            from weko_index_tree.api import Indexes
+
+            comm_list = Community.get_by_user(
+                role_ids, with_deleted=True
+            ).all()
+            for comm in comm_list:
+                index_ids += [str(i.cid) for i in Indexes.get_self_list(
+                    comm.root_node_id
+                ) if i.cid not in index_ids]
+
+            dep = WekoDeposit.get_record(item_id)
+            path = dep.get('path', [])
+            for p in path:
+                if str(p) in index_ids:
+                    is_admin = True
+                    break
+    return is_admin
 
 
 def get_record_first_version(deposit):
@@ -3768,13 +3779,13 @@ def get_files_and_thumbnail(activity_id, item):
 def get_pid_and_record(item_id):
     """
     get_pid_and_record Get record data for the first time access to editing item screen.
-    
+
     Args:
         item_id (_type_): id of Item metadata.
 
     Returns:
         _type_: A tuple containing (pid, object).
-    
+
     Raises:
         invenio_pidstore.errors.PIDDoesNotExistError: if no PID is found.
         invenio_pidstore.errors.PIDDeletedError: if PID is deleted.
@@ -4113,7 +4124,7 @@ def make_activitylog_tsv(activities):
     Args:
         activities: activities for download as tsv.
     """
-    import csv 
+    import csv
     from io import StringIO
     file_output = StringIO()
 
@@ -4128,4 +4139,4 @@ def make_activitylog_tsv(activities):
         writer.writerow(term)
 
     return file_output.getvalue()
-    
+
