@@ -41,7 +41,7 @@ setup_requires = [
 ]
 
 install_requires = [
-    'boto3>=1.9.83',
+    'boto3>=1.7.84',
     'invenio-files-rest>=1.0.0',
     's3fs>=0.1.5,<0.3.0', # Newer versions only allow python >= 3.5
 ]
