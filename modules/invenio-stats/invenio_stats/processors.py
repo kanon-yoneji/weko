@@ -22,6 +22,7 @@ from invenio_search import current_search_client
 from pytz import utc
 from weko_admin.api import is_restricted_user
 from invenio_search.engine import search
+from invenio_search.utils import prefix_index
 from .models import StatsEvents
 from .utils import get_anonymization_salt, get_geoip, obj_or_import_string
 
@@ -176,8 +177,8 @@ class EventsIndexer(object):
         self.doctype = queue.routing_key
         self.search_index_prefix = current_app.config['SEARCH_INDEX_PREFIX'] \
             .strip('-')
-        self.index = '{0}-{1}-{2}'.format(self.search_index_prefix, prefix,
-                                          self.queue.routing_key)
+        self.index = prefix_index(f"{prefix}-stats-index")
+        self.event_type = self.queue.routing_key.replace('stats-', '', 1)
         self.suffix = suffix
         # load the preprocessors
         self.preprocessors = [
@@ -195,7 +196,6 @@ class EventsIndexer(object):
                         break
                 if msg is None:
                     continue
-                
                 # msg:
                 # {'timestamp': '2022-07-28T05:06:38.082518', 'record_id': '1857c219-6ff1-45c0-8e3c-85e1fb15305c', 'record_name': 'ja_conference paperITEM00000010(public_open_access_open_access_simple)', 'record_index_list': [{'index_id': '1658073625012', 'index_name': 'IndexB', 'index_name_en': 'IndexB'}, {'index_id': '1658883231990', 'index_name': 'IndexA', 'index_name_en': 'IndexA'}], 'pid_type': 'recid', 'pid_value': '10', 'referrer': 'https://localhost:8443/?page=1&size=20&sort=controlnumber', 'cur_user_id': 'guest', 'remote_addr': '10.0.2.2', 'site_license_flag': False, 'site_license_name': '', 'is_restricted': False, 'is_robot': False, 'country': None, 'visitor_id': '7d9fad5b86c69dce8f011e041be8852f2ab8a41ad8c46c290c7c82ce', 'unique_session_id': '7d9fad5b86c69dce8f011e041be8852f2ab8a41ad8c46c290c7c82ce', 'unique_id': '033103b8-2793-3d95-8c8f-d06abfda7ce4', 'hostname': '_gateway'}
                 # suffix: %Y
@@ -208,6 +208,7 @@ class EventsIndexer(object):
                 ts = ts.replace(microsecond=0)
                 
                 msg['timestamp'] = ts.isoformat()
+                msg['event_type'] = self.event_type
                 # apply timestamp windowing in order to group events too close
                 # in time
                 if self.double_click_window > 0:
@@ -221,7 +222,6 @@ class EventsIndexer(object):
                     _id=hash_id(ts.isoformat(), msg),
                     _op_type='index',
                     _index='{0}'.format(self.index),
-                    _type=self.doctype,
                     _source=msg,
                 )
                 if current_app.config['STATS_WEKO_DB_BACKUP_EVENTS']:

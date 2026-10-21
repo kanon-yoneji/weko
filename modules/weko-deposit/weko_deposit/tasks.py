@@ -257,6 +257,7 @@ def update_items_by_authorInfo(origin_list, target):
                         }]
                 }
             },
+            "track_total_hits": True,
             "_source": [
                 "control_number"
             ],

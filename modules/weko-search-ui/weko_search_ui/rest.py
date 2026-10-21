@@ -25,6 +25,7 @@ from functools import partial
 import re
 
 from invenio_search.engine import dsl
+from invenio_search.utils import build_alias_name
 from flask import Blueprint, abort, current_app, jsonify, redirect, request, url_for, make_response
 from invenio_db import db
 from invenio_files_rest.storage import PyFSFileStorage
@@ -208,7 +209,7 @@ class IndexSearchResource(ContentNegotiatedMethodView):
         community_id = request.values.get("community")
         params = {}
         facets = get_facet_search_query()
-        search_index = current_app.config["SEARCH_UI_SEARCH_INDEX"]
+        search_index = build_alias_name(current_app.config["SEARCH_UI_SEARCH_INDEX"])
         if facets and search_index and "post_filters" in facets[search_index]:
             post_filters = facets[search_index]["post_filters"]
             for param in post_filters:
@@ -519,7 +520,7 @@ class GetFacetSearchConditions(ContentNegotiatedMethodView):
         """Get facet-search conditions API."""
 
         def _set_facet_agg_query(search, facets, keys):
-            search_index = current_app.config["SEARCH_UI_SEARCH_INDEX"]
+            search_index = build_alias_name(current_app.config["SEARCH_UI_SEARCH_INDEX"])
             if facets and search_index and "aggs" in facets[search_index]:
                 aggs = facets[search_index]["aggs"]
                 for agg_key, agg_terms in aggs.items():
@@ -543,7 +544,7 @@ class GetFacetSearchConditions(ContentNegotiatedMethodView):
         size = request.values.get("size", 20, type=int)
 
         facets = get_facet_search_query()
-        search_index = current_app.config["SEARCH_UI_SEARCH_INDEX"]
+        search_index = build_alias_name(current_app.config["SEARCH_UI_SEARCH_INDEX"])
         active_facets = facets[search_index]["aggs"].keys() if facets and search_index and "aggs" in facets[search_index] else []
 
         if search_type == current_app.config["WEKO_SEARCH_TYPE_DICT"]["INDEX"] and re.fullmatch('\d+', query):

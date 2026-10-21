@@ -110,7 +110,14 @@ class _StataModelBase(Timestamp):
         
         # source->>'event_type' = '[event-type]'
         condition_2_1 = cls.index.ilike(_index + "%") 
-        condition_2_2 = func.jsonb_extract_path_text(cls.source, "event_type") == event_type
+        # NOTE: 'source' is saved as a JSON string by save() (orjson.dumps),
+        # so unwrap it ((source #>> '{}')::jsonb) before extracting the key.
+        # This works for both JSON string and JSON object values.
+        from sqlalchemy import cast, literal_column
+        source_obj = cast(
+            cls.source.op('#>>')(literal_column("'{}'")), postgresql.JSONB)
+        condition_2_2 = source_obj.op('->>')(
+            literal_column("'event_type'")) == event_type
         
         query = query.filter(
             or_(

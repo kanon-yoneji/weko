@@ -111,7 +111,7 @@ class ReindexElasticSearchView(BaseView):
             responce json text and responce code
 
         Todo:
-        if you change this codes or operating, please keep in mind Todo of the method "elasticsearch_reindex"
+        if you change this codes or operating, please keep in mind Todo of the method "search_reindex"
         in .utils.py .
         """
 

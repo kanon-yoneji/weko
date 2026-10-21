@@ -53,6 +53,7 @@ from invenio_records.api import RecordBase
 from invenio_accounts.models import User
 from invenio_search import RecordsSearch
 from invenio_search.engine import search
+from invenio_search.utils import build_alias_name
 from invenio_stats.utils import QueryRankingHelper, QuerySearchReportHelper
 from invenio_stats.views import QueryRecordViewCount as _QueryRecordViewCount
 from invenio_stats.proxies import current_stats
@@ -1373,7 +1374,7 @@ def get_list_file_by_record_id(recid):
     }
     indexer = RecordIndexer()
     result = indexer.client.search(
-        index=current_app.config['INDEXER_DEFAULT_INDEX'],
+        index=build_alias_name(current_app.config['INDEXER_DEFAULT_INDEX']),
         body=body
     )
     list_file_name = []

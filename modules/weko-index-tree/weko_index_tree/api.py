@@ -37,6 +37,7 @@ from invenio_accounts.models import Role
 from invenio_db import db
 from invenio_i18n.ext import current_i18n
 from invenio_indexer.api import RecordIndexer
+from invenio_search.utils import build_alias_name
 from invenio_stats.config import STATS_WEKO_DEFAULT_TIMEZONE
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import aliased
@@ -1495,7 +1496,8 @@ class Indexes(object):
                     }
                 }
             }
-            search_index = current_app.config['SEARCH_UI_SEARCH_INDEX']
+            search_index = build_alias_name(
+                current_app.config['SEARCH_UI_SEARCH_INDEX'])
             query_q = orjson.dumps(upd_item_sort_q).decode().replace("@index", index_path)
             query_q = orjson.loads(query_q)
             indexer = RecordIndexer()

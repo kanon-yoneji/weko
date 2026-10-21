@@ -148,7 +148,7 @@ services:
 
   postgresql:
     restart: "always"
-    image: postgres:12
+    image: postgres:17
 #    command: postgres -c log_destination=stderr -c log_statement=all -c log_connections=on -c log_disconnections=on
     environment:
       - POSTGRES_USER=invenio
@@ -161,7 +161,7 @@ services:
 
   redis:
     restart: "always"
-    image: redis
+    image: redis:8.0.6
     ports:
       - "26301:6379"
     deploy:
@@ -193,7 +193,7 @@ services:
 
   rabbitmq:
     restart: "always"
-    image: rabbitmq
+    image: rabbitmq:4.2.8
     ports:
       - "24301:4369"
       - "45601:25672"

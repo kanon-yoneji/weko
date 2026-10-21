@@ -99,7 +99,7 @@ def test_default_permission_factory(app):
 
 # def get_aggregations(index, aggs_query):
 # .tox/c1/bin/pytest --cov=invenio_stats tests/test_utils.py::test_get_aggregations -v -s -vv --cov-branch --cov-report=term --cov-config=tox.ini --basetemp=/code/modules/invenio-stats/.tox/c1/tmp
-def test_get_aggregations(app, es):
+def test_get_aggregations(app):
     res = get_aggregations('', {})
     assert res=={}
 

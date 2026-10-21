@@ -40,6 +40,7 @@ from invenio_files_rest.errors import FileInstanceAlreadySetError, \
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
 from invenio_search import RecordsSearch
 from invenio_search.engine import search
+from invenio_search.utils import build_alias_name
 from simplekv.memory.redisstore import RedisStore
 from sqlalchemy import asc
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -782,7 +783,8 @@ def get_search_result_by_date(start_date, end_date, query_with_publish_status=Fa
     records_search = RecordsSearch()
     records_search = records_search.with_preference_param().params(
         version=False)
-    records_search._index[0] = current_app.config['SEARCH_UI_SEARCH_INDEX']
+    records_search._index[0] = build_alias_name(
+        current_app.config['SEARCH_UI_SEARCH_INDEX'])
     result = None
     try:
         search_instance, _qs_kwargs = item_search_factory(

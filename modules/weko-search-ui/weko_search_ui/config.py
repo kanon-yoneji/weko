@@ -229,7 +229,6 @@ WEKO_SEARCH_REST_ENDPOINTS = dict(
         pid_fetcher="recid",
         search_class=RecordsSearch,
         search_index=SEARCH_UI_SEARCH_INDEX,
-        search_type="item-v1.0.0",
         search_factory_imp="weko_search_ui.query.weko_search_factory",
         # record_class='',
         record_serializers={
@@ -252,7 +251,6 @@ WEKO_SEARCH_REST_ENDPOINTS = dict(
         search_class=RecordsSearch,
         indexer_class=RecordIndexer,
         search_index=SEARCH_UI_SEARCH_INDEX,
-        search_type="item-v1.0.0",
         search_factory_imp="weko_search_ui.query.facet_condition_search_factory",
         search_serializers={
             "application/json": ("weko_records.serializers" ":json_v1_search"),

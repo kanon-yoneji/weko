@@ -67,6 +67,7 @@ from invenio_records.models import RecordMetadata
 from invenio_records_rest.errors import InvalidQueryRESTError
 from invenio_search import RecordsSearch
 from invenio_search.engine import search
+from invenio_search.utils import build_alias_name
 from invenio_stats.config import SEARCH_INDEX_PREFIX as index_prefix, STATS_WEKO_DEFAULT_TIMEZONE
 from invenio_stats.models import StatsEvents
 from invenio_stats.processors import (
@@ -214,7 +215,8 @@ def get_tree_items(index_tree_id):
     """Get tree items."""
     records_search = RecordsSearch()
     records_search = records_search.with_preference_param().params(version=False)
-    records_search._index[0] = current_app.config["SEARCH_UI_SEARCH_INDEX"]
+    records_search._index[0] = build_alias_name(
+        current_app.config["SEARCH_UI_SEARCH_INDEX"])
     search_instance, _ = item_path_search_factory(
         None, records_search, index_id=index_tree_id
     )
@@ -319,7 +321,8 @@ def get_feedback_mail_list():
     """Get feedback items."""
     records_search = RecordsSearch()
     records_search = records_search.with_preference_param().params(version=False)
-    records_search._index[0] = current_app.config["SEARCH_UI_SEARCH_INDEX"]
+    records_search._index[0] = build_alias_name(
+        current_app.config["SEARCH_UI_SEARCH_INDEX"])
     ret = {}
 
     try:
@@ -1532,6 +1535,7 @@ def send_item_created_event_to_search(item, request_info):
             "pid_type": "depid",
             "timestamp": doc.get("timestamp"),
             "visitor_id": doc.get("visitor_id"),
+            "event_type": "item-create",
         }
         return data
 
@@ -1543,7 +1547,7 @@ def send_item_created_event_to_search(item, request_info):
     timestamp = datetime.utcnow().replace(microsecond=0)
     # Prepare stored data.
     data = _prepare_stored_data(item, request_info)
-    index = "{}-events-{}".format(index_prefix, "stats-item-create")
+    index = build_alias_name("events-stats-index")
     id = hash_id(timestamp, data)
     # Save item to stats events.
     _push_item_to_opensearch(id, index, data)

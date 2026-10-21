@@ -143,6 +143,39 @@ sleep 20
 ${INVENIO_WEB_INSTANCE} index queue init
 # sphinxdoc-index-initialisation-end
 
+# sphinxdoc-pipeline-registration-begin
+curl -ku ${INVENIO_OPENSEARCH_USER}:${INVENIO_OPENSEARCH_PASS} -XPUT 'https://'${INVENIO_ELASTICSEARCH_HOST}':9200/_ingest/pipeline/item-file-pipeline' -H 'Content-Type: application/json' -d '{
+ "description" : "Index contents of each file.",
+ "processors" : [
+   {
+     "foreach": {
+       "field": "content",
+       "processor": {
+         "attachment": {
+           "indexed_chars" : -1,
+           "target_field": "_ingest._value.attachment",
+           "field": "_ingest._value.file",
+           "properties": [
+             "content"
+           ]
+         }
+       }
+     }
+   },
+   {
+     "foreach": {
+       "field": "content",
+       "processor": {
+         "remove": {
+           "field": "_ingest._value.file"
+         }
+       }
+     }
+   }
+ ]
+}'
+# sphinxdoc-pipeline-registration-end
+
 # elasticsearch-ilm-setting-begin
 curl -ku ${INVENIO_OPENSEARCH_USER}:${INVENIO_OPENSEARCH_PASS} -XPUT 'https://'${INVENIO_ELASTICSEARCH_HOST}':9200/_plugins/_ism/policies/weko_stats_policy' -H 'Content-Type: application/json' -d '
 {
