@@ -20612,7 +20612,7 @@ def test_get_user_info_acl_nologin(client_api, db_sessionlifetime):
         "weko_items_ui_api.get_user_info", owner=1, shared_user_id=1, _external=True
     )
     res = client_api.get(url)
-    assert res.status_code == 200
+    assert res.status_code == 302
 
 
 # .tox/c1/bin/pytest --cov=weko_items_ui tests/test_views.py::test_get_user_info_acl -v --cov-branch --cov-report=term --basetemp=/code/modules/weko-items-ui/.tox/c1/tmp
@@ -20623,10 +20623,10 @@ def test_get_user_info_acl_nologin(client_api, db_sessionlifetime):
         (1, 200),
         (2, 200),
         (3, 200),
-        (4, 200),
-        (5, 200),
+        (4, 403),
+        (5, 403),
         (6, 200),
-        (7, 200),
+        (7, 403),
     ],
 )
 def test_get_user_info_acl(client_api, db_sessionlifetime, users, id, status_code):
@@ -20634,8 +20634,22 @@ def test_get_user_info_acl(client_api, db_sessionlifetime, users, id, status_cod
     url = url_for(
         "weko_items_ui_api.get_user_info", owner=1, shared_user_id=1, _external=True
     )
-    res = client_api.get(url)
+    with patch(
+        "weko_items_ui.views.get_user_information",
+        return_value={"username": "testuser", "email": "test@example.org"},
+    ), patch(
+        "weko_items_ui.views.get_user_permission",
+        return_value=False,
+    ):
+        res = client_api.get(url)
+
     assert res.status_code == status_code
+    if status_code == 200:
+        data = json.loads(res.data.decode("utf-8"))
+        assert data["username"] == "testuser"
+        assert data["email"] == "test@example.org"
+        assert data["owner"] is False
+        assert data["error"] == ""
 
 
 # def get_current_login_user_id():

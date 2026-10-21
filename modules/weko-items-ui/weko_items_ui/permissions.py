@@ -21,7 +21,6 @@
 """Permissions for items."""
 
 from invenio_access import Permission, action_factory
-from weko_records_ui.permissions import page_permission_factory
 
 action_item_access = action_factory('item-access')
 item_permission = Permission(action_item_access)
@@ -29,6 +28,8 @@ item_permission = Permission(action_item_access)
 
 def edit_permission_factory(record, **kwargs):
     """Edit permission factory."""
+    from weko_records_ui.permissions import page_permission_factory
+
     def can(self):
         return page_permission_factory(record, flg='Edit').can()
     return type('EditPermissionChecker', (), {'can': can})()

@@ -485,7 +485,7 @@ def test_save_activity_acl_users(client, users, users_index, status_code):
     input = {"activity_id":"A-20220921-00001","title":"test","shared_user_id":-1}
     with patch('weko_workflow.views.save_activity_data'):
         res = client.post(url, json=input)
-        assert res.status_code != 302 
+        assert res.status_code != 302
 
 def test_save_activity_acl_guestlogin(guest):
     input = {"activity_id":"A-20220921-00001","title":"test","shared_user_id":-1}
@@ -505,14 +505,14 @@ def test_save_activity_acl_guestlogin(guest):
 def test_save_activity(client, users, db_register, users_index, status_code):
     login(client=client, email=users[users_index]['email'])
     url = url_for('weko_workflow.save_activity')
-    
+
     input = {"activity_id":"A-20220921-00001","title":"test"}
     res = client.post(url, json=input)
     data = response_data(res)
     assert res.status_code== 400
     assert data["code"] == -1
     assert data["msg"] == "{'shared_user_id': ['Missing data for required field.']}"
-    
+
     input = {"activity_id":"A-20220921-00001","title":"test","shared_user_id":-1}
     with patch('weko_workflow.views.save_activity_data'):
         res = client.post(url, json=input)
@@ -531,7 +531,7 @@ def test_save_activity(client, users, db_register, users_index, status_code):
 #guestuserでの機能テスト
 def test_save_activity_guestlogin(guest):
     url = url_for('weko_workflow.save_activity')
-    
+
     input = {"activity_id":"A-20220921-00001","title":"test"}
     res = guest.post(url, json=input)
     data = response_data(res)
@@ -1792,7 +1792,7 @@ def test_cancel_action_guest(guest, db, db_register):
     assert data["data"]["redirect"] == redirect_url
 
 
-def test_send_mail_nologin(client,db_register2):
+def test_send_mail_nologin(client, db_register2):
     """Test of send mail."""
     url = url_for('weko_workflow.send_mail', activity_id='1',
                   mail_template='a')
@@ -1805,15 +1805,15 @@ def test_send_mail_nologin(client,db_register2):
 
 
 @pytest.mark.parametrize('users_index, status_code', [
-    (0, 200),
+    (0, 403),
     (1, 200),
     (2, 200),
-    (3, 200),
-    (4, 200),
-    (5, 200),
+    (3, 403),
+    (4, 403),
+    (5, 403),
     (6, 200),
 ])
-def test_send_mail_users(client, users, users_index, status_code):
+def test_send_mail_users(client, users, db_register, users_index, status_code):
     """Test of send mail."""
     login(client=client, email=users[users_index]['email'])
     url = url_for('weko_workflow.send_mail', activity_id='1',
@@ -1821,7 +1821,56 @@ def test_send_mail_users(client, users, users_index, status_code):
     input = {}
     with patch('weko_workflow.views.process_send_reminder_mail'):
         res = client.post(url, json=input)
-        assert res.status_code == status_code
+    data = response_data(res)
+
+    assert res.status_code == status_code
+    if status_code == 200:
+        assert data['code'] == 1
+        assert data['msg'] == 'Success'
+    else:
+        assert data['code'] == 403
+        assert data['msg'] == 'Authorization required'
+
+
+def test_send_mail_authorized_activity(client, users, db_register):
+    """Test send mail when authority is granted for the activity."""
+    login(client=client, email=users[3]['email'])
+    url = url_for('weko_workflow.send_mail', activity_id='1',
+                  mail_template='a')
+
+    with patch(
+        'weko_workflow.views.check_authority_by_admin',
+        return_value=True,
+    ) as mock_check_authority:
+        with patch('weko_workflow.views.process_send_reminder_mail'):
+            res = client.post(url, json={})
+
+    mock_check_authority.assert_called_once()
+    data = response_data(res)
+    assert res.status_code == 200
+    assert data['code'] == 1
+    assert data['msg'] == 'Success'
+
+
+def test_send_mail_unauthorized_activity(client, users, db_register):
+    """Test send mail when authority is denied for the activity."""
+    login(client=client, email=users[3]['email'])
+    url = url_for('weko_workflow.send_mail', activity_id='1',
+                  mail_template='a')
+
+    with patch(
+        'weko_workflow.views.check_authority_by_admin',
+        return_value=False,
+    ) as mock_check_authority:
+        with patch('weko_workflow.views.process_send_reminder_mail') as mock_send_mail:
+            res = client.post(url, json={})
+
+    mock_check_authority.assert_called_once()
+    mock_send_mail.assert_not_called()
+    data = response_data(res)
+    assert res.status_code == 403
+    assert data['code'] == 403
+    assert data['msg'] == 'Authorization required'
 
 
 def test_lock_activity_nologin(client,db_register2):
@@ -1932,7 +1981,7 @@ def test_lock_activity(client, users,db_register, users_index, status_code):
             with patch("weko_workflow.views.get_account_info",return_value=(None,None)):
                 res = client.post(url, data=input)
                 assert res.status_code == 500
-    
+
     # not exist action status is doing
     activity_action = ActivityAction.query.filter_by(
         activity_id="A-00000003-00000",
@@ -1956,7 +2005,7 @@ def test_lock_activity(client, users,db_register, users_index, status_code):
     activity_action.action_status="M"
     db.session.merge(activity_action)
     db.session.commit()
-    
+
     # not exist action_handler
     activity_action = ActivityAction.query.filter_by(
         activity_id="A-00000003-00000",
@@ -2930,7 +2979,7 @@ def test_display_activity(client, users, db_register, users_index, status_code,m
         id = 0
     mock_user = MagicMock()
     mock_user.id = 0
-    
+
     with patch('weko_workflow.views.get_activity_display_info',
                return_value=(action_endpoint, action_id, activity_detail, cur_action, histories, None, \
                steps, temporary_comment, workflow_detail)):
@@ -3283,12 +3332,38 @@ def test_withdraw_confirm_passwd_delete_guestlogin(guest, client, users, db_regi
 
 # def get_roles():
 # .tox/c1/bin/pytest --cov=weko_workflow tests/test_views.py::test_get_roles -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
-def test_get_roles(client, db_register_roles):
+@pytest.mark.parametrize('users_index, status_code', [
+    (0, 200),
+    (1, 200),
+    (2, 200),
+    (3, 200),
+    (4, 403),
+    (5, 403),
+    (6, 200),
+])
+def test_get_roles(client, users, users_index, status_code):
+    login(client=client, email=users[users_index]['email'])
+    url = url_for('weko_workflow.get_roles')
+    roles = [
+        {'id': 1, 'name': 'role1'},
+        {'id': 2, 'name': 'role2'},
+        {'id': 3, 'name': 'role3'},
+    ]
+
+    with patch('weko_records_ui.utils.get_roles', return_value=roles):
+        res = client.get(url)
+
+    assert res.status_code == status_code
+    if status_code == 200:
+        res_json = json.loads(res.data.decode('utf-8'))
+        assert len(res_json['roles']) == 3
+
+
+def test_get_roles_nologin(client, db_register2):
     url = url_for('weko_workflow.get_roles')
     res = client.get(url)
-    res_json = json.loads(res.data.decode('utf-8'))
-    assert res.status_code == 200
-    assert len(res_json['roles']) == 3
+
+    assert res.status_code == 302
 
 
 def test_download_activitylog_nologin(client,db_register2):
